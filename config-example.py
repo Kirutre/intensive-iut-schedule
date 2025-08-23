@@ -1,0 +1,9 @@
+DATABASE_USERNAME = 'root'
+DATABASE_PASSWORD = 'root'
+DATABASE_HOST = 'localhost'
+DATABASE_NAME = 'intensive-iut-schedule'
+
+DATABASE_URL = (
+    f'mariadb://{DATABASE_USERNAME}:{DATABASE_PASSWORD}'
+    f'@{DATABASE_HOST}/{DATABASE_NAME}'
+)
