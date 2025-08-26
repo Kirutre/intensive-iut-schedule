@@ -1,0 +1,2 @@
+class ObjectAlreadyExistsException(Exception):
+    pass
