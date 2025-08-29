@@ -68,7 +68,7 @@ class ScheduleController:
         result = self._session.scalar(statement)
         
         if result is None:
-            raise ObjectNotFoundException(f'No Schedule found with start time {start_time}')
+            raise ObjectNotFoundException(f'No Schedule found with start time "{start_time}"')
         
         return result
         
@@ -78,7 +78,7 @@ class ScheduleController:
         result = self._session.scalar(statement)
         
         if result is None:
-            raise ObjectNotFoundException(f'No Schedule found with end time {end_time}')
+            raise ObjectNotFoundException(f'No Schedule found with end time "{end_time}"')
         
         return result
         
@@ -88,7 +88,7 @@ class ScheduleController:
         result = self._session.scalar(statement)
         
         if result is None:
-            raise ObjectNotFoundException(f'No Schedule found with {day} as the day')
+            raise ObjectNotFoundException(f'No Schedule found with "{day}" as the day')
         
         return result
     

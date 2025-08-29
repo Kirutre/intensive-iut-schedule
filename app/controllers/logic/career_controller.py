@@ -13,12 +13,12 @@ class CareerController:
         self._model = model
         
     def create(self, name: str) -> None:
-        name = self._sanitize(name)
+        sanitize_name = self._sanitize(name)
         
         #! Modify the DB so that the respective fields are UNIQUE (eliminate this method if necessary)
-        self._validate(name)
+        self._validate(sanitize_name)
         
-        career = self._create_career_object(name)
+        career = self._create_career_object(sanitize_name)
         
         try:
             self._session.add(career)
@@ -27,7 +27,7 @@ class CareerController:
         except IntegrityError:
             self._session.rollback()
             
-            raise ObjectAlreadyExistsException(f'Career "{name}" already exists')
+            raise ObjectAlreadyExistsException(f'Career "{sanitize_name}" already exists')
 
     def _sanitize(self, name: str) -> str:
         return name.strip()
@@ -47,7 +47,7 @@ class CareerController:
         result = self._session.scalar(statement)
         
         if result is None:
-            raise ObjectNotFoundException(f'Career {name} not found')
+            raise ObjectNotFoundException(f'Career "{name}" not found')
         
         return result
     
