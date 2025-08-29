@@ -1,20 +1,21 @@
-from sqlalchemy import select, update
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
-from models.database import Session
 from models.career import Career
 
 from utils.exceptions import ObjectAlreadyExistsException, ObjectNotFoundException
 
 
 class CareerController:
-    def __init__(self, model: Career = Career):
-        self._session = Session()
+    def __init__(self, session: Session, model: Career = Career):
+        self._session = session
         self._model = model
         
     def create(self, name: str) -> None:
         name = self._sanitize(name)
         
+        #! Modify the DB so that the respective fields are UNIQUE (eliminate this method if necessary)
         self._validate(name)
         
         career = self._create_career_object(name)
@@ -43,7 +44,12 @@ class CareerController:
     def get_by_name(self, name: str) -> Career:
         statement = select(self._model).where(self._model.name == name)
         
-        return self._session.scalar(statement)
+        result = self._session.scalar(statement)
+        
+        if result is None:
+            raise ObjectNotFoundException(f'Career {name} not found')
+        
+        return result
     
     def get_all(self) -> list[Career]:
         return self._session.execute(select(self._model)).scalars().all()
@@ -51,16 +57,14 @@ class CareerController:
     def update(self, old_name: str, new_name: str) -> None:
         new_name = self._sanitize(new_name)
         
-        if not self.exists(old_name):
-            raise ObjectNotFoundException(f'Career "{old_name}" not found')
-        
         if self.exists(new_name):
             raise ObjectAlreadyExistsException(f'Career "{new_name}" already exists')
         
-        statement = update(self._model).where(self._model.name == old_name).values(name=new_name)
+        career = self.get_by_name(old_name)
+        
+        career.name = new_name
         
         try:
-            self._session.execute(statement)
             self._session.commit()
             
         except IntegrityError:
@@ -71,4 +75,4 @@ class CareerController:
     def exists(self, name: str) -> bool:
         statement = select(self._model.id).where(self._model.name == name).exists()
         
-        return self._session.query(statement).scalar()
+        return self._session.scalar(statement)
