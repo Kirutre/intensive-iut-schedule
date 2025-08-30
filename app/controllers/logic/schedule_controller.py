@@ -65,6 +65,16 @@ class ScheduleController:
             day = data['day']
         )
     
+    def get_by_id(self, id: int) -> Schedule:
+        statement = select(self._model).where(self._model.id == id)
+        
+        result = self._session.scalar(statement)
+        
+        if result is None:
+            raise ObjectNotFoundException(f'Schedule with id "{id}" not found')
+        
+        return result
+    
     def get_all(self) -> list[Schedule]:
         return self._session.execute(select(self._model)).scalars().all()
         
