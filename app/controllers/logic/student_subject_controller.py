@@ -1,29 +1,30 @@
-from sqlalchemy import select
+from sqlalchemy import select, or_, and_
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
 from models.student_subject import StudentSubject
 
-from controllers.logic.career_controller import CareerController
+from controllers.logic.student_controller import StudentController
+from controllers.logic.subject_schedule_controller import SubjectScheduleController
 
 from utils.exceptions import ObjectAlreadyExistsException, ObjectNotFoundException
 
 
-class StudentSubjectController:
+class SubjectScheduleController:
     def __init__(self, session: Session, model: StudentSubject = StudentSubject,
-                 career_controller: CareerController = CareerController
+                 student_controller: StudentController = StudentController,
+                 subject_schedule_controller: SubjectScheduleController = SubjectScheduleController
                  ):
         self._session = session
         self._model = model
-        self._career_controller = career_controller
+        self._student_controller = student_controller
+        self._subject_schedule_controller = subject_schedule_controller
         
-    def create(self, data: dict[str, str]) -> None:
-        sanitize_name = self._sanitize(data)
-        
+    def create(self, data: dict[str, int]) -> None:
         #! Modify the DB so that the respective fields are UNIQUE (eliminate this method if necessary)
-        validate_data = self._validate(data, sanitize_name)
+        self._validate(data)
         
-        student_subject = self._create_student_subject_object(validate_data)
+        student_subject = self._create_student_subject_object(data)
         
         try:
             self._session.add(student_subject)
@@ -32,60 +33,58 @@ class StudentSubjectController:
         except IntegrityError:
             self._session.rollback()
             
-            raise ObjectAlreadyExistsException(f'student_subject "{sanitize_name}" already exists')
-
-    def _sanitize(self, data: dict[str, any]) -> str:
-        return data['name'].strip()
+            raise ObjectAlreadyExistsException(f'''Student with id {data['student_id']} is already attending classes from
+                                               id {data['subject_schedule_id']}''')
         
-    def _validate(self, data: dict[str, any], name: str) -> dict[str, any]:
-        if self.exists(name):
-            raise ObjectAlreadyExistsException(f'student_subject "{name}" already exists')
-        
+    def _validate(self, data: dict[str, any]) -> None:       
         try:
-            career = self._career_controller.get_by_id(data['career_id'])
-        
+            student = self._student_controller.get_by_id(data['student_id'])
+            subject_schedule = self._subject_schedule_controller.get_by_id(data['subject_schedule_id'])
+                    
         except ObjectNotFoundException:
-            raise ObjectNotFoundException(f'Career with id {data['career_id']} not found')
+            raise ObjectNotFoundException(f'''Student {student.name} or subject_schedule with id {subject_schedule.id} not found''')
         
-        return {'name': name, 'course': data['course'], 'career_id': career.id}
+        if self.exists(data):
+            raise ObjectAlreadyExistsException(f'''Student {student.name} is already attending classes from
+                                               id {subject_schedule.id}''')
         
-    def _create_student_subject_object(self, data: dict[str, any]) -> student_subject:
-        return student_subject(
-            name=data['name'],
-            course=data['course'],
-            career_id=data['career_id']
+    def _create_student_subject_object(self, data: dict[str, any]) -> StudentSubject:
+        return StudentSubject(
+            student_id=data['student_id'],
+            subject_schedule_id=data['subject_schedule_id']
         )
         
-    def get_by_name(self, name: str) -> student_subject:
-        statement = select(self._model).where(self._model.name == name)
+    def get_by_id(self, id: int) -> StudentSubject:
+        statement = select(self._model).where(self._model.id == id)
         
         result = self._session.scalar(statement)
         
         if result is None:
-            raise ObjectNotFoundException(f'student_subject "{name}" not found')
+            raise ObjectNotFoundException(f'Student_subject with id "{id}" not found')
         
         return result
         
-    def get_by_career(self, career_id: int) -> list[student_subject]:
+    def get_by_student(self, student_id: int) -> list[StudentSubject]:
         try:
-            career = self._career_controller.get_by_id(career_id)
+            student = self._student_controller.get_by_id(student_id)
             
         except ObjectNotFoundException:
-            raise ObjectNotFoundException(f'Career with id "{career_id}" not found')
+            raise ObjectNotFoundException(f'Student with id "{student_id}" not found')
         
-        statement = select(self._model).where(self._model.career_id == career.id)
+        statement = select(self._model).where(self._model.student_id == student.id)
         
         result = self._session.execute(statement).scalars().all()
         
         if result is None:
-            raise ObjectNotFoundException(f'student_subject of career "{career.name}" not found')
+            raise ObjectNotFoundException(f'Student_subject for student "{student.name}" not found')
         
         return result
     
-    def get_all(self) -> list[student_subject]:
+    def get_all(self) -> list[StudentSubject]:
         return self._session.execute(select(self._model)).scalars().all()
         
-    def exists(self, name: str) -> bool:
-        statement = select(self._model.id).where(self._model.name == name).exists()
+    def exists(self, data: dict[str, any]) -> bool:
+        statement =  and_(self._model.student_id == data['student_id'],
+                          self._model.subject_schedule_id == data['subject_schedule_id']).exists()
         
         return self._session.scalar(statement)

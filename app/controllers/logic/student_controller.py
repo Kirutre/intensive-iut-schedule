@@ -44,7 +44,17 @@ class StudentController:
             name=data['name'],
             identification_number=data['identification_number']
         )
+    
+    def get_by_id(self, id: int) -> Student:
+        statement = select(self._model).where(self._model.id == id)
         
+        result = self._session.scalar(statement)
+        
+        if result is None:
+            raise ObjectNotFoundException(f'Student with id {id} not found')
+        
+        return result
+    
     def get_by_name(self, name: str) -> Student:
         statement = select(self._model).where(self._model.name == name)
         

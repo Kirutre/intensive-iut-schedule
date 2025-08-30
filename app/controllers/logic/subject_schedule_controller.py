@@ -23,7 +23,7 @@ class SubjectScheduleController:
         self._schedule_controller = schedule_controller
         self._teacher_controller = teacher_controller
         
-    def create(self, data: dict[str, str]) -> None:
+    def create(self, data: dict[str, any]) -> None:
         #! Modify the DB so that the respective fields are UNIQUE (eliminate this method if necessary)
         self._validate(data)
         
