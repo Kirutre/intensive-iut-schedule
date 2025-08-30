@@ -41,6 +41,16 @@ class CareerController:
             name=name
         )
         
+    def get_by_id(self, id: int) -> Career:
+        statement = select(self._model).where(self._model.id == id)
+        
+        result = self._session.scalar(statement)
+        
+        if result is None:
+            raise ObjectNotFoundException(f'Career with id {id} not found')
+
+        return result
+        
     def get_by_name(self, name: str) -> Career:
         statement = select(self._model).where(self._model.name == name)
         
